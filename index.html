@@ -477,9 +477,14 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   transition: border-color .2s;
 }
 
-.product-rec.top {
-  border-color: var(--borgonha);
+.product-rec.selected {
+  border-color: var(--borgonha) !important;
   background: linear-gradient(135deg, var(--branco) 0%, #fdf5f0 100%);
+}
+
+.product-rec:hover {
+  border-color: var(--rosa);
+  box-shadow: 0 2px 12px var(--sombra);
 }
 
 .rec-badge {
@@ -911,7 +916,8 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
       <div id="products-section" class="hidden">
         <div class="divider"></div>
-        <div class="section-title">Produtos recomendados para o seu perfil</div>
+        <div class="section-title">Selecione o plano para a proposta</div>
+        <p style="font-size:12px;color:var(--marrom-lt);margin-bottom:1rem;line-height:1.6">O plano marcado abaixo foi sugerido pelo diagnóstico. Você pode selecionar qualquer outro antes de gerar a proposta.</p>
         <div id="products-list"></div>
       </div>
 
@@ -1103,61 +1109,61 @@ const PRODUTOS = [
     id:'express', nome:'VÉRTICE Express — 30 dias',
     desc:'Diagnóstico profundo, plano de ação priorizado e 3 sessões de implementação.',
     why:'Ideal para empresários que precisam de clareza e direção imediata, sem comprometer 6 meses de agenda.',
-    preco:'R$ 3.500 – R$ 8.000', pilares:['V','É','R']
+    preco:'R$ 8.000', pilares:['V','É','R']
   },
   {
     id:'V', nome:'Módulo V — Visão',
     desc:'Propósito, posicionamento e direção estratégica de longo prazo.',
     why:'Para quem age sem clareza de destino e confunde movimento com progresso.',
-    preco:'R$ 2.800 (individual)', pilares:['V']
+    preco:'R$ 2.800', pilares:['V']
   },
   {
     id:'É', nome:'Módulo É — Estratégia',
     desc:'Plano estratégico documentado, metas, OKRs e execução consistente.',
     why:'Para quem tem visão mas não tem o mapa do caminho — e erra nas prioridades.',
-    preco:'R$ 3.200 (individual)', pilares:['É']
+    preco:'R$ 3.200', pilares:['É']
   },
   {
     id:'R', nome:'Módulo R — Resultado',
     desc:'Gestão financeira, indicadores, previsibilidade e dashboards de KPIs.',
     why:'Para quem trabalha no escuro, sem dados, e descobre os problemas tarde demais.',
-    preco:'R$ 2.500/mês', pilares:['R']
+    preco:'R$ 2.500', pilares:['R']
   },
   {
     id:'T', nome:'Módulo T — Transformação',
     desc:'Processos, liderança, cultura e autonomia da equipe.',
     why:'Para o dono que se tornou o maior gargalo da própria empresa.',
-    preco:'R$ 4.500 (individual)', pilares:['T']
+    preco:'R$ 4.500', pilares:['T']
   },
   {
     id:'I', nome:'Módulo I — Inovação',
     desc:'Novos produtos, modelos de negócio e adaptação ao mercado.',
     why:'Para quem sente que o mercado mudou e o negócio ficou para trás.',
-    preco:'R$ 5.500 (individual)', pilares:['I']
+    preco:'R$ 5.500', pilares:['I']
   },
   {
     id:'C', nome:'Módulo C — Crescimento',
     desc:'Processo comercial, marketing e aquisição de clientes escalável.',
     why:'Para quem depende de indicações e não tem previsibilidade em vendas.',
-    preco:'R$ 4.800 (individual)', pilares:['C']
+    preco:'R$ 4.800', pilares:['C']
   },
   {
     id:'E', nome:'Módulo E — Escala',
     desc:'Estrutura organizacional, expansão e sistemas para crescer sem depender do dono.',
     why:'Para negócios prontos para crescer que ainda não têm a estrutura para sustentar o crescimento.',
-    preco:'R$ 6.500 (individual)', pilares:['E']
+    preco:'R$ 6.500', pilares:['E']
   },
   {
     id:'completo', nome:'VÉRTICE Completo — 6 meses',
     desc:'Todos os 7 pilares trabalhados em sequência. Transformação estrutural completa.',
     why:'Para empresários comprometidos com uma mudança real e duradoura no negócio.',
-    preco:'R$ 18.500 (individual)', pilares:['V','É','R','T','I','C','E']
+    preco:'R$ 18.500', pilares:['V','É','R','T','I','C','E']
   },
   {
     id:'master', nome:'VÉRTICE Master — 12 meses',
     desc:'Acompanhamento intensivo anual com suporte contínuo e mentoria de alto nível.',
     why:'Para líderes que querem escalar com consistência e ter um parceiro estratégico permanente.',
-    preco:'R$ 32.000 (individual)', pilares:['V','É','R','T','I','C','E']
+    preco:'R$ 32.000', pilares:['V','É','R','T','I','C','E']
   }
 ];
 
@@ -1446,14 +1452,37 @@ Estruturar os pilares de ${(pilaresAbaixo.slice(0,2).join(' e '))||fraco.nome} c
   el.textContent = analysisText;
 
   const recIds = getRecommendedProducts();
-  const html = PRODUTOS.filter(p=>recIds.includes(p.id)).map((p,i)=>`
-    <div class="product-rec ${i===0?'top':''}">
-      ${i===0?'<div class="rec-badge">Principal recomendação</div>':''}
-      <div class="rec-name">${p.nome}</div>
-      <div class="rec-desc">${p.desc}</div>
-      <div class="rec-why">↳ ${p.why}</div>
-      <div class="rec-price">${p.preco}</div>
-    </div>`).join('');
+  const primaryRec = recIds[0];
+  // Set default selected plan to primary recommendation
+  window._planSelecionado = primaryRec;
+
+  const html = PRODUTOS.map(p => {
+    const isRec = p.id === primaryRec;
+    const isSelected = p.id === primaryRec;
+    return `
+    <div class="product-rec ${isRec?'top':''} ${isSelected?'selected':''}"
+         id="plan-card-${p.id}"
+         onclick="selecionarPlano('${p.id}')"
+         style="cursor:pointer;position:relative;transition:all .2s">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div style="flex:1">
+          ${isRec?'<div class="rec-badge">Recomendado pelo diagnóstico</div>':''}
+          <div class="rec-name">${p.nome}</div>
+          <div class="rec-desc">${p.desc}</div>
+          <div class="rec-why">↳ ${p.why}</div>
+          <div class="rec-price">${p.preco}</div>
+        </div>
+        <div id="plan-check-${p.id}" style="
+          width:20px;height:20px;border-radius:50%;flex-shrink:0;margin-top:3px;
+          border:2px solid ${isSelected?'#8B1A3A':'#DFC2C2'};
+          background:${isSelected?'#8B1A3A':'transparent'};
+          display:flex;align-items:center;justify-content:center;
+          transition:all .2s">
+          ${isSelected?'<svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#F2EAE4" stroke-width="1.8" stroke-linecap="round"/></svg>':''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
   document.getElementById('products-list').innerHTML = html;
   document.getElementById('products-section').classList.remove('hidden');
   document.getElementById('step5-btns').classList.remove('hidden');
@@ -1467,8 +1496,9 @@ async function runProposta() {
   const d = getDados();
   const media = calcMedia();
   const fraco = getPilarFraco();
-  const recIds = getRecommendedProducts();
-  const recProd = PRODUTOS.find(p=>p.id===recIds[0]) || PRODUTOS[0];
+  // Use plano selecionado pelo usuário, ou fallback ao recomendado
+  const planId = window._planSelecionado || getRecommendedProducts()[0];
+  const recProd = PRODUTOS.find(p=>p.id===planId) || PRODUTOS[0];
   const pilaresStr = PILARES.map(p=>`${p.nome}: ${s[p.id]||5}/10`).join(' | ');
   const analise = document.getElementById('ai-analysis-text')?.textContent || '';
 
@@ -1506,10 +1536,10 @@ BLOCO 3 — ENTREGÁVEIS
 [Lista com 6 itens iniciando com —. Seja específico: não "sessões de mentoria" mas "4 sessões mensais de 90min focadas em [pilar fraco]". Use o contexto do diagnóstico.]
 
 BLOCO 4 — INVESTIMENTO E ROI
-[Apresente o investimento. Depois faça um comparativo de valor: "Você está faturando ${d.fat}. Se em 6 meses o programa resolver [problema específico identificado], o retorno esperado é..." Inclua a garantia de 14 dias.]
+[Apresente o investimento (valor único: ${recProd.preco}). Faça comparativo de valor: "Você está faturando ${d.fat}. Se em ${recProd.id==='completo'||recProd.id==='master'?'6 a 12 meses':'30 a 90 dias'} o programa resolver [problema específico identificado], o retorno esperado é..." NÃO mencione garantia, devolução de dinheiro ou prazo de cancelamento. Apenas o valor e o ROI esperado.]
 
 BLOCO 5 — PRÓXIMO PASSO
-[3 linhas máximo. CTA direto, sem pressão artificial. Mencione o nome do empresário. Instrução simples de como confirmar.]
+[Máximo 3 linhas. Informe que o consultor comercial da VÉRTICE entrará em contato em breve para agendar uma reunião de apresentação e alinhamento, onde todos os detalhes e condições serão apresentados. Tom acolhedor, sem pressão. NÃO peça para o lead confirmar vaga ou responder com palavra-chave.]
 
 Tom: consultivo, premium, direto. Sem clichês de vendas. Máximo 420 palavras no total.`;
 
@@ -1583,16 +1613,15 @@ O objetivo em ${prazo}: transformar os pilares críticos em estruturas funcionai
 
   const fat = d.fat || 'seu faturamento atual';
   const investimento =
-`Investimento: *${recProd.preco}*
-Condições: entrada + parcelas mensais (consultar disponibilidade)
-Garantia: 14 dias — se não ficar satisfeito com as primeiras sessões, devolvemos 100% do valor investido, sem perguntas.
+`Investimento: ${recProd.preco}
+Condições de pagamento: a serem apresentadas pelo consultor comercial na reunião de alinhamento.
 
 Comparativo de valor: ${nomeEmpresa} fatura ${fat}. Se em ${prazo} o programa resolver os gargalos de ${pilaresStr} — mesmo que isso represente um aumento de 15% no resultado — o retorno sobre o investimento será múltiplo. O custo de não estruturar agora é maior do que o investimento em estruturar.`;
 
   const cta =
-`${nomeLead}, para confirmar sua vaga basta responder esta mensagem com a palavra *VÉRTICE* ou entrar em contato diretamente.
+`${nomeLead}, o próximo passo é aguardar o contato do nosso consultor comercial, que entrará em contato em breve para agendar uma reunião de apresentação e alinhamento.
 
-As vagas são limitadas para garantir a qualidade do acompanhamento. Após a confirmação, enviamos o contrato e as instruções de início em até 24 horas.`;
+Nessa reunião serão apresentados todos os detalhes do programa, condições de pagamento e tiradas todas as suas dúvidas antes de qualquer decisão.`;
 
   return { contexto, proposta, entregaveis, investimento, cta };
 }
@@ -1612,6 +1641,37 @@ function parseBlocos(text) {
   });
   if(!out.contexto) out.contexto = text;
   return out;
+}
+
+/* ═══════════════════════════════════════════════
+   SELEÇÃO DE PLANO
+═══════════════════════════════════════════════ */
+function selecionarPlano(id) {
+  // Desmarca todos
+  PRODUTOS.forEach(p => {
+    const card  = document.getElementById('plan-card-'+p.id);
+    const check = document.getElementById('plan-check-'+p.id);
+    if(card) {
+      card.style.borderColor = '';
+      card.classList.remove('selected');
+    }
+    if(check) {
+      check.style.border = '2px solid #DFC2C2';
+      check.style.background = 'transparent';
+      check.innerHTML = '';
+    }
+  });
+  // Marca selecionado
+  const selCard  = document.getElementById('plan-card-'+id);
+  const selCheck = document.getElementById('plan-check-'+id);
+  if(selCard) selCard.style.borderColor = '#8B1A3A';
+  if(selCheck) {
+    selCheck.style.border = '2px solid #8B1A3A';
+    selCheck.style.background = '#8B1A3A';
+    selCheck.innerHTML = '<svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#F2EAE4" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  }
+  window._planSelecionado = id;
+  showToast('Plano selecionado: ' + (PRODUTOS.find(p=>p.id===id)?.nome || id));
 }
 
 /* ═══════════════════════════════════════════════
@@ -1949,14 +2009,15 @@ async function generatePDF() {
       <div style="font-size:22px;color:#8B1A3A;font-weight:300;margin-bottom:2px">${d.nome || ''}</div>
       <div style="font-size:13px;color:#7A4A4A">${d.empresa || ''} · ${d.setor || ''}</div>
       <div style="font-size:11px;color:#C49A9A;margin-top:4px">${d.fat||''} · ${d.colab||''} colaboradores · ${d.tempo||''}</div>
+      <div style="font-size:11px;color:#C49A9A;margin-top:2px">${d.whats||''} ${d.email?'· '+d.email:''}</div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:28px">
       ${[
         {v:p.media+'/10', l:'Índice de maturidade'},
         {v:p.fraco, l:'Pilar crítico'},
-        {v:d.fat, l:'Faturamento'},
-        {v:d.colab, l:'Colaboradores'}
+        {v:p.produto?.nome?.split('—')[0]?.trim()||'—', l:'Programa selecionado'},
+        {v:p.produto?.preco||'—', l:'Investimento'}
       ].map(m=>`<div style="background:#F2EAE4;border:1px solid #DFC2C2;padding:12px;text-align:center">
         <div style="font-size:16px;color:#8B1A3A;font-weight:400">${m.v||'—'}</div>
         <div style="font-size:9px;color:#7A4A4A;margin-top:3px;text-transform:uppercase;letter-spacing:0.08em">${m.l}</div>
